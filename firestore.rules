@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Authentication & Authorization Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAuthorizedDevice(userId) {
+      return isAuthenticated() && (
+        (request.auth.token.role == 'device' && request.auth.token.ownerId == userId) ||
+        exists(/databases/$(database)/documents/users/$(userId)/devices/$(request.auth.uid))
+      );
+    }
+
+    // User Profile / Settings
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+      
+      // Device registration records
+      match /devices/{deviceId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // User Tasks Collection
+    match /users/{userId}/tasks/{taskId} {
+      // 1. Read Access:
+      // Allowed for the authenticated task owner OR their authorized STM32 kiosk device
+      allow read: if isOwner(userId) || isAuthorizedDevice(userId);
+
+      // 2. Create Access:
+      // Only the authenticated task owner can create new tasks from the web application
+      allow create: if isOwner(userId) &&
+                       request.resource.data.ownerId == userId &&
+                       request.resource.data.title is string &&
+                       request.resource.data.title.size() > 0 &&
+                       request.resource.data.title.size() <= 200 &&
+                       request.resource.data.priority in ['critical', 'high', 'medium', 'low'] &&
+                       request.resource.data.status in ['pending', 'in_progress', 'completed'];
+
+      // 3. Update Access:
+      // - Task Owner: full update permission over their tasks
+      // - Authorized Device: LEAST PRIVILEGE - can ONLY update completion status, timestamps, and revision
+      allow update: if isOwner(userId) || (
+        isAuthorizedDevice(userId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'completedAt', 'updatedAt', 'revision']) &&
+        request.resource.data.ownerId == resource.data.ownerId &&
+        request.resource.data.id == resource.data.id &&
+        request.resource.data.status in ['pending', 'in_progress', 'completed']
+      );
+
+      // 4. Delete Access:
+      // Only the task owner can delete or archive records; devices cannot delete
+      allow delete: if isOwner(userId);
+    }
+
+    // Deny all other access by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "short_name": "FocusDesk",
+  "name": "FocusDesk Task Manager",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0B0F19",
+  "theme_color": "#0F172A",
+  "display": "standalone",
+  "orientation": "any"
+}
