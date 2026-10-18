@@ -329,8 +329,7 @@ class AdvancedEdgeKiosk(Gtk.Window):
     def __init__(self):
         super().__init__(title="STM32MP135F-DK FocusDesk Kiosk")
         self.set_default_size(480, 272)
-        self.set_size_request(480, 272)
-        self.set_resizable(False)
+        self.set_decorated(False)
         self.connect("destroy", Gtk.main_quit)
         self.connect("key-press-event", self.on_key_press)
         self.connect("button-press-event", self.on_user_interaction)
@@ -397,7 +396,9 @@ class AdvancedEdgeKiosk(Gtk.Window):
         GLib.timeout_add(1000, self.update_clock)
         GLib.timeout_add_seconds(3, self.check_backlight_and_db)
 
+        self.show_all()
         self.fullscreen()
+        self.present()
 
     def load_settings(self):
         if os.path.exists(CONFIG_PATH):
@@ -1033,7 +1034,7 @@ class AdvancedEdgeKiosk(Gtk.Window):
         box.pack_start(hdr, False, False, 0)
 
         sensors = [
-            ("Core Thermal Zone", "38.5°C", "thermal_zone0 (Nominal < 85°C)"),
+            ("Core Thermal Zone", "38.5°C", "thermal_zone0 (Nominal below 85°C)"),
             ("Goodix Touch Panel", "event0 (I2C)", "Capacitive 480×272 Multi-Touch"),
             ("Panel Backlight", "10 / 10", "PWM Dimming (/sys/class/backlight)"),
             ("Display Controller", "LTDC 2D", "DPI-1 Parallel RGB 24-bit"),
