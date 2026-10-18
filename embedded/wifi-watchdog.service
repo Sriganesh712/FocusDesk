@@ -1,0 +1,32 @@
+﻿PAGER=cat cat /etc/systemd/system/wifi-watchdog.servic
+
+
+e
+
+[Unit]
+
+Description=Wi-Fi Failover Watchdog
+
+After=NetworkManager.service
+
+Wants=NetworkManager.service
+
+
+
+[Service]
+
+Type=simple
+
+ExecStart=/usr/local/bin/wifi-watchdog.sh
+
+Restart=always
+
+RestartSec=5
+
+
+
+[Install]
+
+WantedBy=multi-user.target
+
+root@stm32mp1-e3-72-e5:

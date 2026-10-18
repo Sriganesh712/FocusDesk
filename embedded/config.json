@@ -1,0 +1,10 @@
+﻿{
+  "firebase_project_id": "focusdesk-embedded",
+  "firebase_web_api_key": "",
+  "owner_id": "local-owner-focusdesk",
+  "device_id": "stm32mp135-kiosk-01",
+  "sync_interval_sec": 30,
+  "idle_backlight_sec": 120,
+  "dimmed_brightness": 1,
+  "active_brightness": 10
+}
