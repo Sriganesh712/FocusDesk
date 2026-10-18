@@ -6,7 +6,7 @@ import {
   query,
   where,
 } from 'firebase/firestore';
-import { db, isFirebaseConfigured } from '../firebase/config';
+import { db, auth, isFirebaseConfigured } from '../firebase/config';
 import type { Task, ConflictRecord, SyncStatus } from '../types/task';
 import {
   getAllTasksFromDb,
@@ -71,7 +71,11 @@ class SyncEngine {
 
   public setOwnerId(ownerId: string | null) {
     this.activeOwnerId = ownerId;
-    this.triggerSync();
+    if (ownerId && auth?.currentUser) {
+      this.triggerSync();
+    } else {
+      this.emitStatus();
+    }
   }
 
   public subscribeStatus(listener: (status: SyncStatus) => void): () => void {
@@ -107,9 +111,10 @@ class SyncEngine {
     const lastSyncTime = await getMetadata('lastSyncTime');
 
     const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+    const isAuthenticated = Boolean(auth?.currentUser && this.activeOwnerId);
 
     let state: SyncStatus['state'] = 'synced';
-    if (!isOnline || !isFirebaseConfigured) {
+    if (!isOnline || !isFirebaseConfigured || !isAuthenticated) {
       state = 'offline';
     } else if (this.isSyncing) {
       state = 'syncing';
@@ -133,7 +138,15 @@ class SyncEngine {
   }
 
   public async triggerSync(): Promise<void> {
-    if (this.isSyncing || !isFirebaseConfigured || !db || !this.activeOwnerId) {
+    const currentUser = auth?.currentUser;
+    if (
+      this.isSyncing ||
+      !isFirebaseConfigured ||
+      !db ||
+      !currentUser ||
+      !this.activeOwnerId ||
+      this.activeOwnerId !== currentUser.uid
+    ) {
       this.emitStatus();
       return;
     }
@@ -167,7 +180,7 @@ class SyncEngine {
   }
 
   private async pushPendingOperations(): Promise<void> {
-    if (!db || !this.activeOwnerId) return;
+    if (!db || !this.activeOwnerId || !auth?.currentUser) return;
 
     const pendingOps = await getPendingOperations();
     for (const op of pendingOps) {
@@ -179,11 +192,20 @@ class SyncEngine {
         const currentTask = localTasks.find((t) => t.id === op.taskId);
 
         if (currentTask) {
+          const taskToPersist: Task = {
+            ...currentTask,
+            ownerId: this.activeOwnerId,
+          };
           // Idempotent upsert to Firestore
-          await setDoc(taskDocRef, currentTask, { merge: true });
+          await setDoc(taskDocRef, taskToPersist, { merge: true });
+
+          // Update local DB if ownerId was outdated (e.g. from local fallback)
+          if (currentTask.ownerId !== this.activeOwnerId) {
+            await saveTasksToDb([taskToPersist]);
+          }
         }
 
-        // Successfully pushed: remove from pending queue
+        // Successfully pushed or task no longer exists: remove from pending queue
         await removeOperationFromDb(op.opId);
       } catch (err: any) {
         // If error is network or auth, break and retry later

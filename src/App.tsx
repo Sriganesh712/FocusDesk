@@ -57,7 +57,7 @@ export function App() {
 
     const unsubAuth = subscribeToAuth((state) => {
       setAuthState(state);
-      syncEngine.setOwnerId(state.user ? state.user.uid : state.localOwnerId);
+      syncEngine.setOwnerId(state.user ? state.user.uid : null);
     });
 
     const unsubSync = syncEngine.subscribeStatus((status) => {
@@ -217,7 +217,13 @@ export function App() {
         onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onLogout={logout}
-        onTriggerSync={() => syncEngine.triggerSync()}
+        onTriggerSync={() => {
+          if (!authState.user) {
+            setIsAuthModalOpen(true);
+          } else {
+            syncEngine.triggerSync();
+          }
+        }}
       />
 
       <main className="main-content">
