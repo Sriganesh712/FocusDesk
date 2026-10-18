@@ -1,0 +1,12 @@
+{
+  "firebase_project_id": "YOUR_PROJECT_ID",
+  "firebase_web_api_key": "YOUR_WEB_API_KEY",
+  "owner_id": "YOUR_USER_UID",
+  "auth_email": "device@focusdesk.local",
+  "auth_password": "YOUR_DEVICE_PASSWORD",
+  "device_id": "stm32mp135-kiosk-01",
+  "sync_interval_sec": 10,
+  "idle_backlight_sec": 120,
+  "dimmed_brightness": 1,
+  "active_brightness": 10
+}

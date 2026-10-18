@@ -4,17 +4,23 @@ import sys
 PLINK_PATH = r"C:\Program Files\PuTTY\plink.exe"
 HOSTKEY = "SHA256:csiG0+qUBwQEy2+aYR0ZbEeZwpJDpmCH6wrLbxr39Ls"
 PASSWORD = "Sriganesh@712"
-HOST = "root@10.57.135.57"
+CANDIDATE_HOSTS = ["root@10.50.27.58", "root@10.57.135.57", "root@10.158.208.57"]
 
 def run_ssh(cmd_str):
-    res = subprocess.run(
-        [PLINK_PATH, "-hostkey", HOSTKEY, "-batch", "-pw", PASSWORD, HOST, cmd_str],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace"
-    )
-    return res.returncode, res.stdout, res.stderr
+    for host in CANDIDATE_HOSTS:
+        try:
+            res = subprocess.run(
+                [PLINK_PATH, "-hostkey", HOSTKEY, "-batch", "-pw", PASSWORD, host, cmd_str],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=30
+            )
+            return res.returncode, res.stdout, res.stderr
+        except Exception:
+            continue
+    return 1, "", "Failed to connect to any candidate host"
 
 if __name__ == "__main__":
     if hasattr(sys.stdout, "reconfigure"):
